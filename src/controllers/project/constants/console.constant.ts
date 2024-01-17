@@ -1,0 +1,5 @@
+const PROJECT_CONSOLE_MESSAGES = {
+
+};
+
+export default PROJECT_CONSOLE_MESSAGES;
