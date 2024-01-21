@@ -1,14 +1,19 @@
-import { Body, Controller, Get, Param, Put, Delete } from '@nestjs/common';
+import {Body, Controller, Get, Param, Put, Delete, Post, UseGuards, Req} from '@nestjs/common'
+import {CreateProjectDto} from "./dtos/create-project.dto";
 
-@Controller()
+@Controller("projects")
 export class ProjectController {
+  @Post('/')
+  public async createProject(@Body() project: CreateProjectDto) {
 
-  @Get('project/:id')
+  }
+
+  @Get('/:id')
   public async getProject(@Param('id') id: string) {
 
   }
 
-  @Delete('project/:id')
+  @Delete('/:id')
   public async deleteNews(@Param('id') id: string) {
 
   }

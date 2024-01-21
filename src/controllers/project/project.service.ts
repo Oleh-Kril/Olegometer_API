@@ -6,7 +6,7 @@ import {InjectModel} from "@nestjs/mongoose"
 
 @Injectable()
 export class ProjectService {
-  constructor(@InjectModel('projects') private readonly projectsModel: Model<Project>) {}
+  constructor() {}
 
   public async getAllProjectsByUser(): Promise<AxiosResponse> {
     throw NotImplementedException
