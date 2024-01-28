@@ -1,19 +1,17 @@
-import {
-  Module,
-} from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { ProjectController } from './controllers/project/project.controller';
-import {ProjectService} from "./controllers/project/project.service"
-import {DatabaseModule} from "./shared/modules/database.module"
+import { Module } from '@nestjs/common';
+
+import {classes} from "@automapper/classes"
+import {AutomapperModule} from "@automapper/nestjs"
+import {ProjectsModule} from "./modules/projects/projects.module"
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
+    AutomapperModule.forRoot({
+      strategyInitializer: classes(),
     }),
-    DatabaseModule,
+    ProjectsModule,
   ],
-  controllers: [ProjectController],
-  providers: [ProjectService],
+  controllers: [],
+  providers: [],
 })
-export class AppModule{}
+export class AppModule {}
