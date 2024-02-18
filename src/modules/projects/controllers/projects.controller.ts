@@ -5,6 +5,9 @@ import {InjectMapper, MapInterceptor} from "@automapper/nestjs"
 import {Mapper} from "@automapper/core"
 import {Project} from "../models/project.model"
 import {ProjectResponseDto} from "./dtos/projectResponse.dto"
+import {CreatePageDto} from "./dtos/page.dto"
+import {CreateDesignDto} from "./dtos/design.dto"
+import {Design} from "../models/design.model"
 
 @Controller('projects')
 export class ProjectsController {
@@ -46,5 +49,43 @@ export class ProjectsController {
 
     private getUserEmailFromToken(userToken: string): string {
         return this.userEmail;
+    }
+
+    @Post('/:projectName')
+    async addPage(@Param('projectName') projectName: string, @Body() {pageUrl}: CreatePageDto) : Promise<any> {
+        const createdPage = await this.projectsService.addPage(projectName, pageUrl);
+
+        return createdPage;
+    }
+
+    @Post('/:projectName/:pageUrl')
+    async addDesign(
+        @Param('projectName') projectName: string,
+        @Param('pageUrl') pageUrl: string,
+        @Body() designDto: CreateDesignDto
+    ) : Promise<any> {
+        const designToAdd = this.mapper.map(designDto, CreateDesignDto, Design);
+
+        const createdPage = await this.projectsService.addDesign(projectName, pageUrl, designDto.name, designToAdd);
+
+        return createdPage;
+    }
+
+    @Post('/:projectName/:pageUrl/:designName/make-screenshot')
+    async makePageScreenshot(
+        @Param('projectName') projectName: string,
+        @Param('pageUrl') pageUrl: string,
+        @Param('designName') designName: string,
+    ) : Promise<any> {
+        await this.projectsService.makePageScreenshot(projectName, pageUrl, designName);
+    }
+
+    @Post('/:projectName/:pageUrl/:designName/export-design-screenshot')
+    async exportDesignScreenshot(
+        @Param('projectName') projectName: string,
+        @Param('pageUrl') pageUrl: string,
+        @Param('designName') designName: string,
+    ) : Promise<any> {
+        await this.projectsService.exportDesignScreenshot(projectName, pageUrl, designName);
     }
 }

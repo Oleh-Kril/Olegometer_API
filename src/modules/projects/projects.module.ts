@@ -6,6 +6,10 @@ import {ProjectProfile} from "./controllers/mapper/projectProfile"
 import {DATA_BASE_CONFIGURATION} from "../../configuration"
 import {MongooseModule} from "@nestjs/mongoose"
 import {Project, ProjectSchema} from "./models/project.model"
+import {RenderingService} from "../rendering/services/rendering.service"
+import {IntegrationService} from "../integration/services/integration.service"
+import {FileStorageService} from "../file-storage/services/file-storage.service"
+import {HttpModule} from "@nestjs/axios"
 
 @Module({
   imports: [
@@ -13,8 +17,9 @@ import {Project, ProjectSchema} from "./models/project.model"
       { name: Project.name, schema: ProjectSchema },
     ]),
     MongooseModule.forRoot(DATA_BASE_CONFIGURATION.mongoConnectionString),
+    HttpModule,
   ],
   controllers: [ProjectsController],
-  providers: [ProjectsService, ProjectsRepository, ProjectProfile]
+  providers: [ProjectsService, RenderingService, IntegrationService, FileStorageService, ProjectsRepository, ProjectProfile]
 })
 export class ProjectsModule {}

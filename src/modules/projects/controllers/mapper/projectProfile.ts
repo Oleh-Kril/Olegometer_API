@@ -5,6 +5,8 @@ import {createMap, forMember, mapFrom} from "@automapper/core"
 import {CreateProjectDto} from "../dtos/project.dto"
 import {Project} from "../../models/project.model"
 import {ProjectResponseDto} from "../dtos/projectResponse.dto"
+import {CreateDesignDto} from "../dtos/design.dto"
+import {Design} from "../../models/design.model"
 
 @Injectable()
 export class ProjectProfile extends AutomapperProfile {
@@ -35,6 +37,16 @@ export class ProjectProfile extends AutomapperProfile {
                 forMember(
                     (destination) => destination.pages,
                     mapFrom((source) => source.pages),
+                ),
+            )
+
+            createMap(
+                mapper,
+                CreateDesignDto,
+                Design,
+                forMember(
+                    (destination) => destination.dynamicElements,
+                    mapFrom(() => ({})),
                 ),
             )
         };
