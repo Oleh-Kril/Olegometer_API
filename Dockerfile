@@ -1,27 +1,24 @@
 FROM mcr.microsoft.com/playwright as builder
 
-ENV NODE_ENV build
+WORKDIR /usr/src/app
 
-WORKDIR /home/node
-
+# A wildcard is used to ensure both package.json AND package-lock.json are copied
 COPY package*.json ./
-RUN npm ci
 
-COPY --chown=node:node . .
-RUN npm run build \
-    && npm prune --omit=dev
+# Install app dependencies
+RUN npm install
 
-# ---
+# Bundle app source
+COPY . .
 
-FROM mcr.microsoft.com/playwright
+# Copy the .env and .env.development files
+COPY .env ./
 
-ENV NODE_ENV production
+# Creates a "dist" folder with the production build
+RUN npm run build
 
-USER node
-WORKDIR /home/node
+# Expose the port on which the app will run
+EXPOSE 5000
 
-COPY --from=builder --chown=node:node /home/node/package*.json ./
-COPY --from=builder --chown=node:node /home/node/node_modules/ ./node_modules/
-COPY --from=builder --chown=node:node /home/node/dist/ ./dist/
-
-CMD ["node", "dist/server.js"]
+# Start the server using the production build
+CMD ["npm", "run", "start:prod"]
