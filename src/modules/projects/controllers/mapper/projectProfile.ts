@@ -38,6 +38,10 @@ export class ProjectProfile extends AutomapperProfile {
                     (destination) => destination.pages,
                     mapFrom((source) => source.pages),
                 ),
+                forMember(
+                    (destination) => destination.id,
+                    mapFrom((source) => source._id.toString()),
+                ),
             )
 
             createMap(

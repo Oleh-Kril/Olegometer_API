@@ -17,7 +17,13 @@ async function bootstrap() {
     whitelist: true,
   }));
 
-  const port = process.env.PORT || 3000;
+  app.enableCors({
+    origin: 'http://localhost:3000',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: false,
+  });
+
+  const port = process.env.PORT || 5050;
   await app.listen(port, "0.0.0.0");
 }
 bootstrap();

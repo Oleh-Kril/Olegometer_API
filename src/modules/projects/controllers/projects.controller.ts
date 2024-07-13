@@ -1,7 +1,7 @@
 import {Body, Controller, Delete, Get, Param, Post, UseInterceptors} from '@nestjs/common'
 import {CreateProjectDto} from "./dtos/project.dto"
 import {ProjectsService} from "../services/projects.service"
-import {InjectMapper, MapInterceptor} from "@automapper/nestjs"
+import {InjectMapper} from "@automapper/nestjs"
 import {Mapper} from "@automapper/core"
 import {Project} from "../models/project.model"
 import {ProjectResponseDto} from "./dtos/projectResponse.dto"
@@ -87,5 +87,14 @@ export class ProjectsController {
         @Param('designName') designName: string,
     ) : Promise<any> {
         await this.projectsService.exportDesignScreenshot(projectName, pageUrl, designName);
+    }
+
+    @Post('/:projectName/:pageUrl/:designName/compare-screenshots')
+    async compareScreenshots(
+        @Param('projectName') projectName: string,
+        @Param('pageUrl') pageUrl: string,
+        @Param('designName') designName: string,
+    ) : Promise<any> {
+        await this.projectsService.compareScreenshots(projectName, pageUrl, designName);
     }
 }

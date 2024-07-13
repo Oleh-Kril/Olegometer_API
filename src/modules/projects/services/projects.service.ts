@@ -9,6 +9,7 @@ import {IntegrationService} from "../../integration/services/integration.service
 import sizeOf from 'image-size'
 import getCurrentTimeString from "../../../utils/dateUtils"
 import {FileStorageService} from "../../file-storage/services/file-storage.service"
+import {HttpService} from "@nestjs/axios"
 
 @Injectable()
 export class ProjectsService {
@@ -18,6 +19,7 @@ export class ProjectsService {
         private readonly renderingService: RenderingService,
         private readonly integrationService: IntegrationService,
         private readonly fileStorageService: FileStorageService,
+        private readonly httpService: HttpService
     ) {}
 
     async createProject(project: Project) {
@@ -177,5 +179,45 @@ export class ProjectsService {
         design.designSnapshotLastUpdated = getCurrentTimeString();
 
         return design;
+    }
+
+    async compareScreenshots(projectName: string, pageUrl: string, designName: string) {
+        const projectFromDb = await this.getProjectByName(projectName);
+
+        const pageFromDb = projectFromDb.pages[pageUrl];
+
+        if(!pageFromDb){
+            throw new NotFoundException("Page not found")
+        }
+
+        const designFromDb = pageFromDb.designs[designName];
+
+        if(!designFromDb){
+            throw new NotFoundException("Design not found");
+        }
+
+        const designScreenshotUrl = designFromDb.designSnapshotUrl;
+        const websiteScreenshotUrl = designFromDb.websiteSnapshotUrl;
+
+        if(!designScreenshotUrl || !websiteScreenshotUrl){
+            throw new NotFoundException("Some of the screenshots are missing");
+        }
+
+        const comparisonResponse = await this.httpService.post('http://localhost:8000/api/compare/', {
+            designS3Key: designScreenshotUrl,
+            websiteS3Key: websiteScreenshotUrl
+        }).toPromise();
+
+        const comparisonResult = comparisonResponse.data;
+
+        designFromDb.comparisonResult = comparisonResult;
+        designFromDb.comparisonLastUpdated = getCurrentTimeString();
+
+        await this.projectsRepository.projects.update(
+            projectFromDb._id.toString(),
+            projectFromDb
+        );
+
+        return comparisonResult;
     }
 }
