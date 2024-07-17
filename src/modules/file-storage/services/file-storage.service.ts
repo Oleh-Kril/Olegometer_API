@@ -1,6 +1,12 @@
 import {Injectable} from '@nestjs/common';
 import {FILE_STORAGE_CONFIGURATION} from "../../../configuration";
-import {S3Client, PutObjectCommand, GetObjectCommandOutput, GetObjectCommand} from '@aws-sdk/client-s3'
+import {
+    S3Client,
+    PutObjectCommand,
+    GetObjectCommandOutput,
+    GetObjectCommand,
+    DeleteObjectCommand
+} from '@aws-sdk/client-s3'
 
 @Injectable()
 export class FileStorageService{
@@ -59,6 +65,20 @@ export class FileStorageService{
 
         } catch (error) {
             throw new Error(`Error getting file: ${error.message}`);
+        }
+    }
+
+    async deleteFile(key: string): Promise<void> {
+        const params = {
+            Bucket: this.bucketName,
+            Key: key,
+        };
+
+        try {
+            const command = new DeleteObjectCommand(params);
+            await this.s3Client.send(command);
+        } catch (error) {
+            throw new Error(`Error deleting file: ${error.message}`);
         }
     }
 }

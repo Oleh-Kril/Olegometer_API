@@ -81,6 +81,19 @@ export class ProjectsService {
         return projectFromDb.pages[pageUrl];
     }
 
+    async deletePage(userEmail: string, projectName: string, pageUrl: string) {
+        const project =  await this.getProjectByName(projectName);
+
+        if (!project.pages || !project.pages[pageUrl]) {
+            throw new NotFoundException("Page not found in the project");
+        }
+
+        delete project.pages[pageUrl];
+
+        await this.projectsRepository.projects.update(project._id.toString(), project);
+    }
+
+
     async addDesign(projectName: string, pageUrl: string, designName: string, designToAdd: Design) {
         const projectFromDb = await this.getProjectByName(projectName);
 
@@ -104,6 +117,35 @@ export class ProjectsService {
         );
 
         return projectFromDb.pages[pageUrl].designs[designName];
+    }
+
+    async deleteDesign(userEmail: string, projectName: string, pageUrl: string, designName: string): Promise<void> {
+        const project = await this.getProjectByName(projectName);
+
+        if (!project.pages || !project.pages[pageUrl]) {
+            throw new NotFoundException("Page not found in the project");
+        }
+
+        const page = project.pages[pageUrl];
+        if (!page.designs || !page.designs[designName]) {
+            throw new NotFoundException("Design not found on the page");
+        }
+
+        const design = page.designs[designName];
+        if(design.dynamicElements && Object.keys(design.dynamicElements).length !== 0){
+            throw new ForbiddenException("Can't delete design with dynamic elements")
+        }
+
+        if(design.designSnapshotUrl){
+            await this.fileStorageService.deleteFile(design.designSnapshotUrl);
+        }
+        if(design.websiteSnapshotUrl){
+            await this.fileStorageService.deleteFile(design.websiteSnapshotUrl);
+        }
+
+        delete page.designs[designName];
+
+        await this.projectsRepository.projects.update(project._id.toString(), project);
     }
 
     async makePageScreenshot(projectName: string, pageUrl: string, designName: string) {

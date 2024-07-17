@@ -53,9 +53,17 @@ export class ProjectsController {
 
     @Post('/:projectName')
     async addPage(@Param('projectName') projectName: string, @Body() {pageUrl}: CreatePageDto) : Promise<any> {
-        const createdPage = await this.projectsService.addPage(projectName, pageUrl);
+        await this.projectsService.addPage(projectName, pageUrl);
+    }
 
-        return createdPage;
+    @Delete('/:projectName/:pageUrl')
+    async deletePage(
+        @Param('projectName') projectName: string,
+        @Param('pageUrl') pageUrl: string,
+    ): Promise<void> {
+        const userEmail = this.getUserEmailFromToken("");
+
+        await this.projectsService.deletePage(userEmail, projectName, pageUrl);
     }
 
     @Post('/:projectName/:pageUrl')
@@ -69,6 +77,17 @@ export class ProjectsController {
         const createdPage = await this.projectsService.addDesign(projectName, pageUrl, designDto.name, designToAdd);
 
         return createdPage;
+    }
+
+    @Delete('/:projectName/:pageUrl/:designName')
+    async deleteDesign(
+        @Param('projectName') projectName: string,
+        @Param('pageUrl') pageUrl: string,
+        @Param('designName') designName: string,
+    ): Promise<void> {
+        const userEmail = this.getUserEmailFromToken("");
+
+        await this.projectsService.deleteDesign(userEmail, projectName, pageUrl, designName);
     }
 
     @Post('/:projectName/:pageUrl/:designName/make-screenshot')
