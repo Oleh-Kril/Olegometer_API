@@ -1,4 +1,4 @@
-import {Body, Controller, Delete, Get, Param, Post, UseInterceptors} from '@nestjs/common'
+import {Body, Controller, Delete, Get, Param, Post, Query, UseInterceptors} from '@nestjs/common'
 import {CreateProjectDto} from "./dtos/project.dto"
 import {ProjectsService} from "../services/projects.service"
 import {InjectMapper} from "@automapper/nestjs"
@@ -49,6 +49,14 @@ export class ProjectsController {
 
     private getUserEmailFromToken(userToken: string): string {
         return this.userEmail;
+    }
+
+    @Post('/:projectName/snapshots/update-all')
+    async updateAllSnapshots(
+        @Param('projectName') projectName: string,
+        @Query('exportDesigns') exportDesigns: boolean,
+    ): Promise<any> {
+        return await this.projectsService.updateAllSnapshots(projectName, exportDesigns);
     }
 
     @Post('/:projectName')

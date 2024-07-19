@@ -163,14 +163,7 @@ export class ProjectsService {
             throw new NotFoundException("Design not found")
         }
 
-        const fullPageUrl = projectFromDb.domainUrl + pageUrl;
-        const screenshotBuffer = await this.renderingService.renderPage(fullPageUrl, designFromDb.width);
-
-        const key = `${projectFromDb.author}:/${projectFromDb.name}:${pageUrl}:${designName}:screenshot`
-        await this.fileStorageService.uploadFile(key, screenshotBuffer);
-
-        designFromDb.websiteSnapshotUrl = key;
-        designFromDb.websiteSnapshotLastUpdated = getCurrentTimeString();
+        await this.updatePageSnapshot(projectFromDb, pageUrl, designFromDb);
 
         await this.projectsRepository.projects.update(
             projectFromDb._id.toString(),
@@ -178,6 +171,18 @@ export class ProjectsService {
         );
 
         return designFromDb;
+    }
+
+    private async updatePageSnapshot(project: Project, pageUrl: string, design: Design) {
+        const pageScreenshotBuffer = await this.renderingService.renderPage(project.domainUrl + pageUrl, design.width);
+
+        const key = `${project.author}:/${project.name}:${pageUrl}:/${design.width}:page`
+        design.websiteSnapshotUrl = key
+
+        await this.fileStorageService.uploadFile(key, pageScreenshotBuffer);
+        design.websiteSnapshotLastUpdated = getCurrentTimeString();
+
+        return design;
     }
 
     async exportDesignScreenshot(projectName: string, pageUrl: string, designName: string) {
@@ -261,5 +266,36 @@ export class ProjectsService {
         );
 
         return comparisonResult;
+    }
+
+    async updateAllSnapshots(projectName: string, exportDesigns: boolean): Promise<Project> {
+        const projectFromDb = await this.getProjectByName(projectName);
+
+        if (!projectFromDb) {
+            throw new NotFoundException("Project not found");
+        }
+
+        const promises: Promise<Design>[] = [];
+
+        Object.entries(projectFromDb.pages).forEach(([pageUrl, page]) => {
+            Object.entries(page.designs).forEach(([designName, design]) => {
+                const promiseForPageSnapshot = this.updatePageSnapshot(projectFromDb, pageUrl, design);
+                promises.push(promiseForPageSnapshot);
+
+                if (exportDesigns) {
+                    const promiseForDesignSnapshot = this.manageDesignScreenshotExport(projectFromDb, pageUrl, design)
+                    promises.push(promiseForDesignSnapshot);
+                }
+            });
+        });
+
+        await Promise.all(promises);
+
+        await this.projectsRepository.projects.update(
+            projectFromDb._id.toString(),
+            projectFromDb
+        );
+
+        return projectFromDb;
     }
 }
