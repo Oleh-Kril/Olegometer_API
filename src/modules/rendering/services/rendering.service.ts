@@ -25,7 +25,12 @@ export class RenderingService implements OnModuleDestroy{
         }
     }
 
-    async renderPage(url: string, width: number) {
+    async renderPage(
+        url: string,
+        width: number,
+        auth?: {login: string, password: string},
+        loginPage?: string,
+    ) {
         const page = await this.browser.newPage()
         await page.goto(url, { waitUntil: 'networkidle' })
 

@@ -8,6 +8,7 @@ import {ProjectResponseDto} from "./dtos/projectResponse.dto"
 import {CreatePageDto} from "./dtos/page.dto"
 import {CreateDesignDto} from "./dtos/design.dto"
 import {Design} from "../models/design.model"
+import {Page} from "../models/page.model"
 
 @Controller('projects')
 export class ProjectsController {
@@ -37,7 +38,9 @@ export class ProjectsController {
 
         const createdProject = await this.projectsService.createProject(project);
 
-        return createdProject;
+        const mappedProjects: ProjectResponseDto = this.mapper.map(createdProject, Project, ProjectResponseDto)
+
+        return mappedProjects;
     }
 
     @Delete('/:name')
@@ -56,12 +59,13 @@ export class ProjectsController {
         @Param('projectName') projectName: string,
         @Query('exportDesigns') exportDesigns: boolean,
     ): Promise<any> {
-        return await this.projectsService.updateAllSnapshots(projectName, exportDesigns);
+        await this.projectsService.updateAllSnapshots(projectName, exportDesigns);
     }
 
     @Post('/:projectName')
-    async addPage(@Param('projectName') projectName: string, @Body() {pageUrl}: CreatePageDto) : Promise<any> {
-        await this.projectsService.addPage(projectName, pageUrl);
+    async addPage(@Param('projectName') projectName: string, @Body() {pageUrl, ...pageDto}: CreatePageDto) : Promise<any> {
+        const pageToAdd: Page = {designs: {}, ...pageDto};
+        await this.projectsService.addPage(projectName, pageUrl, pageToAdd);
     }
 
     @Delete('/:projectName/:pageUrl')

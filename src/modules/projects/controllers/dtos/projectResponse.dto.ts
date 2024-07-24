@@ -12,8 +12,8 @@ export class ProjectResponseDto{
     domainUrl: string;
 
     @AutoMap()
-    figmaToken: string;
+    pages: Record<string, Page>;
 
     @AutoMap()
-    pages: Record<string, Page>;
+    users: string[];
 }

@@ -14,6 +14,12 @@ export class Insights {
     absoluteDiffWidth: string;
 
     @AutoMap()
+    width_diff_sign: string;
+
+    @AutoMap()
+    height_diff_sign: string;
+
+    @AutoMap()
     absoluteDiffHeight: string;
 
     @AutoMap()

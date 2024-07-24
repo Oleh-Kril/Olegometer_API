@@ -10,6 +10,7 @@ import sizeOf from 'image-size'
 import getCurrentTimeString from "../../../utils/dateUtils"
 import {FileStorageService} from "../../file-storage/services/file-storage.service"
 import {HttpService} from "@nestjs/axios"
+import {Page} from "../models/page.model"
 
 @Injectable()
 export class ProjectsService {
@@ -68,10 +69,10 @@ export class ProjectsService {
         return projectFromDb;
     }
 
-    async addPage(projectName: string, pageUrl: string) {
+    async addPage(projectName: string, pageUrl: string, pageToAdd: Page) {
         const projectFromDb =  await this.getProjectByName(projectName);
 
-        projectFromDb.pages[pageUrl] = {designs: {}};
+        projectFromDb.pages[pageUrl] = pageToAdd;
 
         await this.projectsRepository.projects.update(
             projectFromDb._id.toString(),
@@ -174,7 +175,9 @@ export class ProjectsService {
     }
 
     private async updatePageSnapshot(project: Project, pageUrl: string, design: Design) {
-        const pageScreenshotBuffer = await this.renderingService.renderPage(project.domainUrl + pageUrl, design.width);
+        const page = project.pages[pageUrl];
+        const authInfo = !page.avoidAuth && Object.keys(project.users ?? {}).length !== 0 ? Object.values(project.users)[0] : undefined;
+        const pageScreenshotBuffer = await this.renderingService.renderPage(project.domainUrl + pageUrl, design.width, authInfo, project.loginPage);
 
         const key = `${project.author}:/${project.name}:${pageUrl}:/${design.width}:page`
         design.websiteSnapshotUrl = key

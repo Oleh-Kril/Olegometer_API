@@ -25,6 +25,10 @@ export class ProjectProfile extends AutomapperProfile {
                     mapFrom(() => ({})),
                 ),
                 forMember(
+                    (destination) => destination.users,
+                    mapFrom((dto) => (dto.users || {})),
+                ),
+                forMember(
                     (destination) => destination.author,
                     mapFrom(() => "mayorford777@gmail.com"),
                 )
@@ -42,6 +46,10 @@ export class ProjectProfile extends AutomapperProfile {
                     (destination) => destination.id,
                     mapFrom((source) => source._id.toString()),
                 ),
+                forMember(
+                    (destination) => destination.users,
+                    mapFrom((source) => Object.keys(source.users ?? {})),
+                )
             )
 
             createMap(
