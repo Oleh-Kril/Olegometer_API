@@ -9,17 +9,28 @@ export class RenderingService implements OnModuleDestroy{
 
     constructor(
         @InjectMapper() private readonly mapper: Mapper,
-    ) {
-        chromium.launch().then((browser) => {
-            this.browser = browser
-        })
+    ) {}
+
+    async onModuleInit() {
+        try {
+            this.browser = await chromium.launch();
+        } catch (error) {
+            console.error('Error launching browser:', error);
+        }
     }
 
     async onModuleDestroy() {
-        await this.browser.close();
+        if (this.browser) {
+            await this.browser.close();
+        }
     }
 
-    async renderPage(url: string, width: number) {
+    async renderPage(
+        url: string,
+        width: number,
+        auth?: {login: string, password: string},
+        loginPage?: string,
+    ) {
         const page = await this.browser.newPage()
         await page.goto(url, { waitUntil: 'networkidle' })
 

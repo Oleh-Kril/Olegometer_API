@@ -26,6 +26,14 @@ export class Project extends MongoBase{
     @AutoMap()
     @Prop({ required: true, type: Object })
     pages: Record<string, Page>;
+
+    @AutoMap()
+    @Prop({ type: Object })
+    users: Record<string, { login: string, password: string }>;
+
+    @AutoMap()
+    @Prop({ required: false })
+    loginPage: string;
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);

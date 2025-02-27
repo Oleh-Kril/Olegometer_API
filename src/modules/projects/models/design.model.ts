@@ -1,6 +1,7 @@
 import {DynamicElement} from "./dynamic-element.model"
 import {Prop, Schema} from "@nestjs/mongoose"
 import {AutoMap} from "@automapper/classes"
+import {ComparisonResult} from "./comparison-result"
 
 @Schema()
 export class Design {
@@ -27,5 +28,12 @@ export class Design {
 
     @AutoMap()
     websiteSnapshotLastUpdated: string;
+
+    @AutoMap()
+    @Prop({ type: Object })
+    comparisonResult: ComparisonResult;
+
+    @AutoMap()
+    comparisonLastUpdated: string;
 }
 

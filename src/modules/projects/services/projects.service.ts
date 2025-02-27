@@ -9,6 +9,8 @@ import {IntegrationService} from "../../integration/services/integration.service
 import sizeOf from 'image-size'
 import getCurrentTimeString from "../../../utils/dateUtils"
 import {FileStorageService} from "../../file-storage/services/file-storage.service"
+import {HttpService} from "@nestjs/axios"
+import {Page} from "../models/page.model"
 
 @Injectable()
 export class ProjectsService {
@@ -18,6 +20,7 @@ export class ProjectsService {
         private readonly renderingService: RenderingService,
         private readonly integrationService: IntegrationService,
         private readonly fileStorageService: FileStorageService,
+        private readonly httpService: HttpService
     ) {}
 
     async createProject(project: Project) {
@@ -66,10 +69,10 @@ export class ProjectsService {
         return projectFromDb;
     }
 
-    async addPage(projectName: string, pageUrl: string) {
+    async addPage(projectName: string, pageUrl: string, pageToAdd: Page) {
         const projectFromDb =  await this.getProjectByName(projectName);
 
-        projectFromDb.pages[pageUrl] = {designs: {}};
+        projectFromDb.pages[pageUrl] = pageToAdd;
 
         await this.projectsRepository.projects.update(
             projectFromDb._id.toString(),
@@ -78,6 +81,19 @@ export class ProjectsService {
 
         return projectFromDb.pages[pageUrl];
     }
+
+    async deletePage(userEmail: string, projectName: string, pageUrl: string) {
+        const project =  await this.getProjectByName(projectName);
+
+        if (!project.pages || !project.pages[pageUrl]) {
+            throw new NotFoundException("Page not found in the project");
+        }
+
+        delete project.pages[pageUrl];
+
+        await this.projectsRepository.projects.update(project._id.toString(), project);
+    }
+
 
     async addDesign(projectName: string, pageUrl: string, designName: string, designToAdd: Design) {
         const projectFromDb = await this.getProjectByName(projectName);
@@ -104,6 +120,35 @@ export class ProjectsService {
         return projectFromDb.pages[pageUrl].designs[designName];
     }
 
+    async deleteDesign(userEmail: string, projectName: string, pageUrl: string, designName: string): Promise<void> {
+        const project = await this.getProjectByName(projectName);
+
+        if (!project.pages || !project.pages[pageUrl]) {
+            throw new NotFoundException("Page not found in the project");
+        }
+
+        const page = project.pages[pageUrl];
+        if (!page.designs || !page.designs[designName]) {
+            throw new NotFoundException("Design not found on the page");
+        }
+
+        const design = page.designs[designName];
+        if(design.dynamicElements && Object.keys(design.dynamicElements).length !== 0){
+            throw new ForbiddenException("Can't delete design with dynamic elements")
+        }
+
+        if(design.designSnapshotUrl){
+            await this.fileStorageService.deleteFile(design.designSnapshotUrl);
+        }
+        if(design.websiteSnapshotUrl){
+            await this.fileStorageService.deleteFile(design.websiteSnapshotUrl);
+        }
+
+        delete page.designs[designName];
+
+        await this.projectsRepository.projects.update(project._id.toString(), project);
+    }
+
     async makePageScreenshot(projectName: string, pageUrl: string, designName: string) {
         const projectFromDb = await this.getProjectByName(projectName);
 
@@ -119,14 +164,7 @@ export class ProjectsService {
             throw new NotFoundException("Design not found")
         }
 
-        const fullPageUrl = projectFromDb.domainUrl + pageUrl;
-        const screenshotBuffer = await this.renderingService.renderPage(fullPageUrl, designFromDb.width);
-
-        const key = `${projectFromDb.author}:/${projectFromDb.name}:${pageUrl}:${designName}:screenshot`
-        await this.fileStorageService.uploadFile(key, screenshotBuffer);
-
-        designFromDb.websiteSnapshotUrl = key;
-        designFromDb.websiteSnapshotLastUpdated = getCurrentTimeString();
+        await this.updatePageSnapshot(projectFromDb, pageUrl, designFromDb);
 
         await this.projectsRepository.projects.update(
             projectFromDb._id.toString(),
@@ -134,6 +172,20 @@ export class ProjectsService {
         );
 
         return designFromDb;
+    }
+
+    private async updatePageSnapshot(project: Project, pageUrl: string, design: Design) {
+        const page = project.pages[pageUrl];
+        const authInfo = !page.avoidAuth && Object.keys(project.users ?? {}).length !== 0 ? Object.values(project.users)[0] : undefined;
+        const pageScreenshotBuffer = await this.renderingService.renderPage(project.domainUrl + pageUrl, design.width, authInfo, project.loginPage);
+
+        const key = `${project.author}:/${project.name}:${pageUrl}:/${design.width}:page`
+        design.websiteSnapshotUrl = key
+
+        await this.fileStorageService.uploadFile(key, pageScreenshotBuffer);
+        design.websiteSnapshotLastUpdated = getCurrentTimeString();
+
+        return design;
     }
 
     async exportDesignScreenshot(projectName: string, pageUrl: string, designName: string) {
@@ -177,5 +229,76 @@ export class ProjectsService {
         design.designSnapshotLastUpdated = getCurrentTimeString();
 
         return design;
+    }
+
+    async compareScreenshots(projectName: string, pageUrl: string, designName: string) {
+        const projectFromDb = await this.getProjectByName(projectName);
+
+        const pageFromDb = projectFromDb.pages[pageUrl];
+
+        if(!pageFromDb){
+            throw new NotFoundException("Page not found")
+        }
+
+        const designFromDb = pageFromDb.designs[designName];
+
+        if(!designFromDb){
+            throw new NotFoundException("Design not found");
+        }
+
+        const designScreenshotUrl = designFromDb.designSnapshotUrl;
+        const websiteScreenshotUrl = designFromDb.websiteSnapshotUrl;
+
+        if(!designScreenshotUrl || !websiteScreenshotUrl){
+            throw new NotFoundException("Some of the screenshots are missing");
+        }
+
+        const comparisonResponse = await this.httpService.post('http://localhost:8000/api/compare/', {
+            designS3Key: designScreenshotUrl,
+            websiteS3Key: websiteScreenshotUrl
+        }).toPromise();
+
+        const comparisonResult = comparisonResponse.data;
+
+        designFromDb.comparisonResult = comparisonResult;
+        designFromDb.comparisonLastUpdated = getCurrentTimeString();
+
+        await this.projectsRepository.projects.update(
+            projectFromDb._id.toString(),
+            projectFromDb
+        );
+
+        return comparisonResult;
+    }
+
+    async updateAllSnapshots(projectName: string, exportDesigns: boolean): Promise<Project> {
+        const projectFromDb = await this.getProjectByName(projectName);
+
+        if (!projectFromDb) {
+            throw new NotFoundException("Project not found");
+        }
+
+        const promises: Promise<Design>[] = [];
+
+        Object.entries(projectFromDb.pages).forEach(([pageUrl, page]) => {
+            Object.entries(page.designs).forEach(([designName, design]) => {
+                const promiseForPageSnapshot = this.updatePageSnapshot(projectFromDb, pageUrl, design);
+                promises.push(promiseForPageSnapshot);
+
+                if (exportDesigns) {
+                    const promiseForDesignSnapshot = this.manageDesignScreenshotExport(projectFromDb, pageUrl, design)
+                    promises.push(promiseForDesignSnapshot);
+                }
+            });
+        });
+
+        await Promise.all(promises);
+
+        await this.projectsRepository.projects.update(
+            projectFromDb._id.toString(),
+            projectFromDb
+        );
+
+        return projectFromDb;
     }
 }

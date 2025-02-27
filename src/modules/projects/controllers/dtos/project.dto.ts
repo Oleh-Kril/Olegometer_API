@@ -1,5 +1,4 @@
-import {PartialType} from "@nestjs/mapped-types"
-import {IsString, Length, Matches, MaxLength} from "class-validator"
+import {IsObject, IsOptional, IsString, Length, Matches, MaxLength} from "class-validator"
 import {AutoMap} from "@automapper/classes"
 
 export class CreateProjectDto {
@@ -18,6 +17,9 @@ export class CreateProjectDto {
     @IsString()
     @Length(45, 45)
     figmaToken: string;
-}
 
-export class UpdateProjectDto extends PartialType(CreateProjectDto) {}
+    @AutoMap()
+    @IsObject()
+    @IsOptional()
+    users: object;
+}

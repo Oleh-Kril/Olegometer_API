@@ -1,13 +1,14 @@
-import {Body, Controller, Delete, Get, Param, Post, UseInterceptors} from '@nestjs/common'
+import {Body, Controller, Delete, Get, Param, Post, Query, UseInterceptors} from '@nestjs/common'
 import {CreateProjectDto} from "./dtos/project.dto"
 import {ProjectsService} from "../services/projects.service"
-import {InjectMapper, MapInterceptor} from "@automapper/nestjs"
+import {InjectMapper} from "@automapper/nestjs"
 import {Mapper} from "@automapper/core"
 import {Project} from "../models/project.model"
 import {ProjectResponseDto} from "./dtos/projectResponse.dto"
 import {CreatePageDto} from "./dtos/page.dto"
 import {CreateDesignDto} from "./dtos/design.dto"
 import {Design} from "../models/design.model"
+import {Page} from "../models/page.model"
 
 @Controller('projects')
 export class ProjectsController {
@@ -37,7 +38,9 @@ export class ProjectsController {
 
         const createdProject = await this.projectsService.createProject(project);
 
-        return createdProject;
+        const mappedProjects: ProjectResponseDto = this.mapper.map(createdProject, Project, ProjectResponseDto)
+
+        return mappedProjects;
     }
 
     @Delete('/:name')
@@ -51,11 +54,28 @@ export class ProjectsController {
         return this.userEmail;
     }
 
-    @Post('/:projectName')
-    async addPage(@Param('projectName') projectName: string, @Body() {pageUrl}: CreatePageDto) : Promise<any> {
-        const createdPage = await this.projectsService.addPage(projectName, pageUrl);
+    @Post('/:projectName/snapshots/update-all')
+    async updateAllSnapshots(
+        @Param('projectName') projectName: string,
+        @Query('exportDesigns') exportDesigns: boolean,
+    ): Promise<any> {
+        await this.projectsService.updateAllSnapshots(projectName, exportDesigns);
+    }
 
-        return createdPage;
+    @Post('/:projectName')
+    async addPage(@Param('projectName') projectName: string, @Body() {pageUrl, ...pageDto}: CreatePageDto) : Promise<any> {
+        const pageToAdd: Page = {designs: {}, ...pageDto};
+        await this.projectsService.addPage(projectName, pageUrl, pageToAdd);
+    }
+
+    @Delete('/:projectName/:pageUrl')
+    async deletePage(
+        @Param('projectName') projectName: string,
+        @Param('pageUrl') pageUrl: string,
+    ): Promise<void> {
+        const userEmail = this.getUserEmailFromToken("");
+
+        await this.projectsService.deletePage(userEmail, projectName, pageUrl);
     }
 
     @Post('/:projectName/:pageUrl')
@@ -69,6 +89,17 @@ export class ProjectsController {
         const createdPage = await this.projectsService.addDesign(projectName, pageUrl, designDto.name, designToAdd);
 
         return createdPage;
+    }
+
+    @Delete('/:projectName/:pageUrl/:designName')
+    async deleteDesign(
+        @Param('projectName') projectName: string,
+        @Param('pageUrl') pageUrl: string,
+        @Param('designName') designName: string,
+    ): Promise<void> {
+        const userEmail = this.getUserEmailFromToken("");
+
+        await this.projectsService.deleteDesign(userEmail, projectName, pageUrl, designName);
     }
 
     @Post('/:projectName/:pageUrl/:designName/make-screenshot')
@@ -87,5 +118,14 @@ export class ProjectsController {
         @Param('designName') designName: string,
     ) : Promise<any> {
         await this.projectsService.exportDesignScreenshot(projectName, pageUrl, designName);
+    }
+
+    @Post('/:projectName/:pageUrl/:designName/compare-screenshots')
+    async compareScreenshots(
+        @Param('projectName') projectName: string,
+        @Param('pageUrl') pageUrl: string,
+        @Param('designName') designName: string,
+    ) : Promise<any> {
+        await this.projectsService.compareScreenshots(projectName, pageUrl, designName);
     }
 }
