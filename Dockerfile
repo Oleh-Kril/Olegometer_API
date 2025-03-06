@@ -8,6 +8,9 @@ COPY package*.json ./
 # Install app dependencies
 RUN npm install
 
+# Install only Chromium and its dependencies
+RUN npx playwright install chromium --with-deps
+
 # Bundle app source
 COPY . .
 

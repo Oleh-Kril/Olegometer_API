@@ -1,6 +1,6 @@
 import {Prop, Schema} from "@nestjs/mongoose"
 import {AutoMap} from "@automapper/classes"
-import {Insights} from "./Insights.model"
+import {Insights} from "./insights.model"
 
 export type InsightsType = 'missing' | 'size';
 
