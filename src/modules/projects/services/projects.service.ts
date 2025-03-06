@@ -253,7 +253,7 @@ export class ProjectsService {
             throw new NotFoundException("Some of the screenshots are missing");
         }
 
-        const comparisonResponse = await this.httpService.post('http://localhost:8000/api/compare/', {
+        const comparisonResponse = await this.httpService.post(`http://localhost:${process.env.AI_API_PORT ?? 8000}/api/compare/`, {
             designS3Key: designScreenshotUrl,
             websiteS3Key: websiteScreenshotUrl
         }).toPromise();
