@@ -13,7 +13,7 @@ export class RenderingService implements OnModuleDestroy{
 
     async onModuleInit() {
         try {
-            this.browser = await chromium.launch({headless: false});
+            this.browser = await chromium.launch({headless: true});
         } catch (error) {
             console.error('Error launching browser:', error);
         }
