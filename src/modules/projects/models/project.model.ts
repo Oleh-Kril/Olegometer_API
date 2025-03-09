@@ -34,6 +34,10 @@ export class Project extends MongoBase{
     @AutoMap()
     @Prop({ required: false })
     loginPage: string;
+
+    @AutoMap()
+    @Prop({ required: false })
+    renderDelay: number;
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);

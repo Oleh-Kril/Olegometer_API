@@ -28,6 +28,7 @@ export class RenderingService implements OnModuleDestroy{
     async renderPage(
         url: string,
         width: number,
+        delay?: number,
         auth?: {login: string, password: string},
         loginPage?: string,
     ) {
@@ -41,6 +42,9 @@ export class RenderingService implements OnModuleDestroy{
         await page.waitForLoadState('networkidle')
 
         await page.setViewportSize({ width, height: 1080 })
+        if (delay) {
+            await page.waitForTimeout(delay)
+        }
         const imageBuffer = await page.screenshot({ type: 'jpeg', fullPage: true })
         await page.close()
 
