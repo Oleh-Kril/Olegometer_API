@@ -41,7 +41,11 @@ export class RenderingService implements OnModuleDestroy{
         });
         await page.goto(url, { waitUntil: 'networkidle' })
 
-        await page.waitForLoadState('networkidle')
+        try {
+            await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 });
+        } catch (error) {
+            console.error(`Navigation to ${url} timed out after 30000ms. Continuing execution...`, error);
+        }
 
         await page.setViewportSize({ width, height: 1080 })
 
