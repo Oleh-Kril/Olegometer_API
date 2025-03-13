@@ -11,6 +11,10 @@ export class FileStorageController {
 
     @Get()
     async getFile(@Query('key') key: string): Promise<string> {
+        if (!key) {
+            throw new Error('Key is required to get file');
+        }
+
         const fileBuffer = await this.fileStorageService.getFile(key);
 
         return fileBuffer.toString('base64');
