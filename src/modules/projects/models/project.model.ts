@@ -38,6 +38,15 @@ export class Project extends MongoBase{
     @AutoMap()
     @Prop({ required: false })
     renderDelay: number;
+
+    @AutoMap()
+    @Prop({ required: false })
+    initActions: ProjectInitActions[];
+}
+
+export interface ProjectInitActions { action: InitAction, text: string, className?: string }
+export enum InitAction {
+    CLICK = 'click',
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);

@@ -2,6 +2,7 @@ import {Injectable, OnModuleDestroy} from '@nestjs/common'
 import {InjectMapper} from "@automapper/nestjs"
 import {Mapper} from "@automapper/core"
 import {Browser, chromium, Page} from 'playwright'
+import {InitAction, ProjectInitActions} from "../../projects/models/project.model"
 
 @Injectable()
 export class RenderingService implements OnModuleDestroy{
@@ -29,6 +30,7 @@ export class RenderingService implements OnModuleDestroy{
         url: string,
         width: number,
         delay?: number,
+        initActions?: ProjectInitActions[],
         auth?: {login: string, password: string},
         loginPage?: string,
     ) {
@@ -51,6 +53,35 @@ export class RenderingService implements OnModuleDestroy{
 
         if (delay) {
             await page.waitForTimeout(delay)
+        }
+
+        if (initActions && initActions.length) {
+            for (const action of initActions) {
+                if (action.action === InitAction.CLICK) {
+                    try {
+                        let locator;
+                        if (action.className) {
+                            // Convert space-separated class names to a proper CSS selector.
+                            const classes = action.className
+                                .split(' ')
+                                .filter(Boolean)
+                                .map(cls => `.${cls}`)
+                                .join('');
+                            // Use the locator with hasText filter to ensure both class and text match.
+                            locator = page.locator(classes, { hasText: action.text });
+                        } else {
+                            locator = page.locator(`text=${action.text}`);
+                        }
+                        await locator.click({ timeout: 3000 });
+                        await page.waitForTimeout(1500);
+                    } catch (error) {
+                        console.log(
+                            `Could not click element with text "${action.text}" and class "${action.className}":`,
+                            error
+                        );
+                    }
+                }
+            }
         }
 
         const imageBuffer = await page.screenshot({ type: 'jpeg', fullPage: true })

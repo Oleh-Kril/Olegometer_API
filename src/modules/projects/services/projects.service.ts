@@ -177,7 +177,7 @@ export class ProjectsService {
     private async updatePageSnapshot(project: Project, pageUrl: string, design: Design) {
         const page = project.pages[pageUrl];
         const authInfo = !page.avoidAuth && Object.keys(project.users ?? {}).length !== 0 ? Object.values(project.users)[0] : undefined;
-        const pageScreenshotBuffer = await this.renderingService.renderPage(project.domainUrl + pageUrl, design.width, project.renderDelay, authInfo, project.loginPage);
+        const pageScreenshotBuffer = await this.renderingService.renderPage(project.domainUrl + pageUrl, design.width, project.renderDelay, project.initActions, authInfo, project.loginPage);
 
         const key = `${project.author}:/${project.name}:${pageUrl}:/${design.width}:page`
         design.websiteSnapshotUrl = key
