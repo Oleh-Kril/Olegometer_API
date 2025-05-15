@@ -1,4 +1,4 @@
-import { Model } from 'mongoose';
+import { Model, AnyKeys } from 'mongoose';
 import {IGenericRepository} from "./generic-repository.abstract"
 import {FilterOption} from "../custom-types/custom.types"
 
@@ -19,24 +19,24 @@ export class MongoGenericRepository<T> implements IGenericRepository<T> {
     return this._repository.find(filterOptions).populate(this._populateOnFind).exec();
   }
 
-  get(id: any): Promise<T> {
+  get(id: any): Promise<T | null> {
     // @ts-ignore
     return this._repository.findById(id).populate(this._populateOnFind).exec();
   }
 
   async getByName(name: string): Promise<T | null> {
-    return this._repository.findOne({ name }).exec();
+    return this._repository.findOne({ name } as any).populate(this._populateOnFind).exec();
   }
 
-  create(item: T): Promise<T> {
-    return this._repository.create(item);
+  create(itemData: AnyKeys<T>): Promise<T> {
+    return this._repository.create(itemData);
   }
 
-  update(id: string, item: T) {
-    return this._repository.findByIdAndUpdate(id, item);
+  update(id: string, item: Partial<T>) {
+    return this._repository.findByIdAndUpdate(id, item, { new: true });
   }
 
-  delete(id: string): Promise<void> {
+  delete(id: string): Promise<T | null> {
     // @ts-ignore
     return this._repository.findByIdAndDelete(id).exec();
   }

@@ -23,7 +23,8 @@ export class ProjectsService {
         private readonly httpService: HttpService
     ) {}
 
-    async createProject(project: Project) {
+    async createProject(project: Project, username: string) {
+        project.author = username;
         const projectFromDb = await this.projectsRepository.projects.getAllByFilter(
             {
                 name: project.name,
@@ -31,7 +32,7 @@ export class ProjectsService {
             });
 
         if(projectFromDb.length !== 0){
-            throw new ForbiddenException("Project with the same name already exists")
+            throw new ForbiddenException("Project with the same name already exists for this author")
         }
 
         const createdProject = await this.projectsRepository.projects.create(project);
@@ -39,14 +40,14 @@ export class ProjectsService {
         return createdProject;
     }
 
-    async getAllByAuthor(userEmail: string) {
-        const projects = await this.projectsRepository.projects.getAllByFilter({author: userEmail});
+    async getAllByAuthor(username: string) {
+        const projects = await this.projectsRepository.projects.getAllByFilter({author: username});
 
         return projects;
     }
 
-    async deleteProject(userEmail, name: string) {
-        const projects = await this.projectsRepository.projects.getAllByFilter({name: name, author: userEmail});
+    async deleteProject(username: string, name: string) {
+        const projects = await this.projectsRepository.projects.getAllByFilter({name: name, author: username});
 
         if (projects.length !== 1) {
             throw new NotFoundException("Project not found for the user")
@@ -59,18 +60,20 @@ export class ProjectsService {
         await this.projectsRepository.projects.delete(projects[0]._id.toString());
     }
 
-    private async getProjectByName(projectName: string){
-        const projectFromDb = await this.projectsRepository.projects.getByName(projectName);
-
-        if(!projectFromDb){
-            throw new NotFoundException("Project with the name doesn't exists")
+    private async getProjectByName(projectName: string, username: string){
+        const projectFromDbArray = await this.projectsRepository.projects.getAllByFilter({name: projectName, author: username});
+        if(projectFromDbArray.length === 0){
+            throw new NotFoundException("Project with the name doesn't exist for this user or you don't have permission.")
         }
-
-        return projectFromDb;
+        if(projectFromDbArray.length > 1){
+            console.error(`Multiple projects found for name ${projectName} and author ${username}`);
+            throw new ForbiddenException("Multiple projects found, data inconsistency.");
+        }
+        return projectFromDbArray[0];
     }
 
-    async addPage(projectName: string, pageUrl: string, pageToAdd: Page) {
-        const projectFromDb =  await this.getProjectByName(projectName);
+    async addPage(projectName: string, pageUrl: string, pageToAdd: Page, username: string) {
+        const projectFromDb =  await this.getProjectByName(projectName, username);
 
         projectFromDb.pages[pageUrl] = pageToAdd;
 
@@ -82,8 +85,8 @@ export class ProjectsService {
         return projectFromDb.pages[pageUrl];
     }
 
-    async deletePage(userEmail: string, projectName: string, pageUrl: string) {
-        const project =  await this.getProjectByName(projectName);
+    async deletePage(username: string, projectName: string, pageUrl: string) {
+        const project =  await this.getProjectByName(projectName, username);
 
         if (!project.pages || !project.pages[pageUrl]) {
             throw new NotFoundException("Page not found in the project");
@@ -95,8 +98,8 @@ export class ProjectsService {
     }
 
 
-    async addDesign(projectName: string, pageUrl: string, designName: string, designToAdd: Design) {
-        const projectFromDb = await this.getProjectByName(projectName);
+    async addDesign(projectName: string, pageUrl: string, designName: string, designToAdd: Design, username: string) {
+        const projectFromDb = await this.getProjectByName(projectName, username);
 
         const pageFromDb = projectFromDb.pages[pageUrl];
 
@@ -120,8 +123,8 @@ export class ProjectsService {
         return projectFromDb.pages[pageUrl].designs[designName];
     }
 
-    async deleteDesign(userEmail: string, projectName: string, pageUrl: string, designName: string): Promise<void> {
-        const project = await this.getProjectByName(projectName);
+    async deleteDesign(username: string, projectName: string, pageUrl: string, designName: string): Promise<void> {
+        const project = await this.getProjectByName(projectName, username);
 
         if (!project.pages || !project.pages[pageUrl]) {
             throw new NotFoundException("Page not found in the project");
@@ -149,8 +152,8 @@ export class ProjectsService {
         await this.projectsRepository.projects.update(project._id.toString(), project);
     }
 
-    async makePageScreenshot(projectName: string, pageUrl: string, designName: string) {
-        const projectFromDb = await this.getProjectByName(projectName);
+    async makePageScreenshot(projectName: string, pageUrl: string, designName: string, username: string) {
+        const projectFromDb = await this.getProjectByName(projectName, username);
 
         const pageFromDb = projectFromDb.pages[pageUrl];
 
@@ -188,8 +191,8 @@ export class ProjectsService {
         return design;
     }
 
-    async exportDesignScreenshot(projectName: string, pageUrl: string, designName: string) {
-        const projectFromDb = await this.getProjectByName(projectName);
+    async exportDesignScreenshot(projectName: string, pageUrl: string, designName: string, username: string) {
+        const projectFromDb = await this.getProjectByName(projectName, username);
 
         const pageFromDb = projectFromDb.pages[pageUrl];
 
@@ -231,8 +234,8 @@ export class ProjectsService {
         return design;
     }
 
-    async compareScreenshots(projectName: string, pageUrl: string, designName: string) {
-        const projectFromDb = await this.getProjectByName(projectName);
+    async compareScreenshots(projectName: string, pageUrl: string, designName: string, username: string) {
+        const projectFromDb = await this.getProjectByName(projectName, username);
 
         const pageFromDb = projectFromDb.pages[pageUrl];
 
@@ -271,8 +274,8 @@ export class ProjectsService {
         return comparisonResult;
     }
 
-    async updateAllSnapshots(projectName: string, exportDesigns: boolean): Promise<Project> {
-        const projectFromDb = await this.getProjectByName(projectName);
+    async updateAllSnapshots(projectName: string, exportDesigns: boolean, username: string): Promise<Project> {
+        const projectFromDb = await this.getProjectByName(projectName, username);
 
         if (!projectFromDb) {
             throw new NotFoundException("Project not found");

@@ -6,7 +6,7 @@ import {Project, ProjectDocument} from "../models/project.model"
 
 @Injectable()
 export class ProjectsRepository implements OnApplicationBootstrap{
-    projects: MongoGenericRepository<Project>;
+    projects: MongoGenericRepository<ProjectDocument>;
 
     constructor(
         @InjectModel(Project.name)
@@ -14,6 +14,6 @@ export class ProjectsRepository implements OnApplicationBootstrap{
     ) {}
 
     onApplicationBootstrap() {
-        this.projects = new MongoGenericRepository<Project>(this.ProjectRepository);
+        this.projects = new MongoGenericRepository<ProjectDocument>(this.ProjectRepository);
     }
 }

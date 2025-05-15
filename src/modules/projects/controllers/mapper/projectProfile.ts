@@ -27,10 +27,6 @@ export class ProjectProfile extends AutomapperProfile {
                 forMember(
                     (destination) => destination.users,
                     mapFrom((dto) => (dto.users || {})),
-                ),
-                forMember(
-                    (destination) => destination.author,
-                    mapFrom(() => "mayorford777@gmail.com"),
                 )
             )
 
